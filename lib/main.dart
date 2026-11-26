@@ -1,6 +1,8 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:image_picker/image_picker.dart';
@@ -86,7 +88,7 @@ class Home extends StatefulWidget {
 class _HomeState extends State<Home> with WidgetsBindingObserver {
   int tab=0;
   DateTime selected=DateTime.now(),month=DateTime(DateTime.now().year,DateTime.now().month);
-  bool lunarOnly=false,busy=false;
+  bool lunarOnly=false,busy=false,refreshPending=false;
   AppStore get db=>widget.store;
   Reminders get reminders=>widget.reminders;
   @override void initState() {
@@ -105,11 +107,23 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   @override void dispose() { WidgetsBinding.instance.removeObserver(this); super.dispose(); }
   @override void didChangeAppLifecycleState(AppLifecycleState state) { if(state==AppLifecycleState.resumed) { setState((){}); reschedule(); } }
   void message(String text) { if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(text))); }
-  Future<void> reschedule() async { if(busy) return; busy=true; try { await reminders.rebuild(); } catch(_) { message('Chưa đặt được một số lời nhắc. Kiểm tra quyền thông báo/báo thức trong Cài đặt.'); } finally { busy=false; } }
+  Future<void> reschedule() async { if(busy) { refreshPending=true; return; } busy=true; try { await reminders.rebuild(); } catch(_) { message('Chưa đặt được một số lời nhắc. Kiểm tra quyền thông báo/báo thức trong Cài đặt.'); } finally { busy=false; if(refreshPending) { refreshPending=false; await reschedule(); } } }
   Future<void> persist() async { await db.save(); await reschedule(); if(mounted) setState((){}); }
   Future<void> showSummaryOrReview(String? payload) async {
-    // Full details use live local data, rather than the notification snapshot.
-    await showDialog<void>(context:context,builder:(c)=>AlertDialog(title:const Text('Công việc hôm nay'),content:SingleChildScrollView(child:Text(db.summary(DateTime.now()))),actions:[TextButton(onPressed:()=>Navigator.pop(c),child:const Text('Đóng'))]));
+    // Full details use live local data for the date carried by the notification.
+    var date=DateTime.now();
+    if(payload!=null) {
+      final p=jsonDecode(payload) as Map<String,dynamic>;
+      if(p['kind']=='alarm') {
+        await showDialog<void>(context:context,barrierDismissible:false,builder:(c)=>AlertDialog(title:const Text('Đến giờ rồi!'),content:Column(mainAxisSize:MainAxisSize.min,children:[const Mascot(size:120),Text(p['body']??'Báo thức')]),actions:[
+          TextButton(onPressed:() async { Navigator.pop(c); await reminders.handle(NotificationResponse(notificationResponseType:NotificationResponseType.selectedNotificationAction,actionId:'snooze',payload:payload)); },child:const Text('10 phút nữa')),
+          FilledButton(onPressed:() async { Navigator.pop(c); await reminders.handle(NotificationResponse(notificationResponseType:NotificationResponseType.selectedNotificationAction,actionId:'done',payload:payload)); },child:const Text('Tắt báo thức')),
+        ]));
+        return;
+      }
+      if(p['day']!=null) { final parts=(p['day'] as String).split('-').map(int.parse).toList(); date=DateTime(parts[0],parts[1],parts[2]); }
+    }
+    await showDialog<void>(context:context,builder:(c)=>AlertDialog(title:Text('Công việc ${dateLabel(date)}'),content:SingleChildScrollView(child:Text(db.summary(date))),actions:[TextButton(onPressed:()=>Navigator.pop(c),child:const Text('Đóng'))]));
   }
   @override Widget build(BuildContext context) {
     final image=db.settings.image;
@@ -221,7 +235,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       OutlinedButton.icon(onPressed:() async {
         DateTime? d;
         if(useLunar) { d=await pickLunar(due); } else { d=await showDatePicker(context:c,initialDate:due,firstDate:DateTime(2020),lastDate:DateTime(2199)); }
-        if(d!=null) update(()=>due=DateTime(d!.year,d.month,d.day,due.hour,due.minute));
+        if(d!=null) { final picked=d; update(()=>due=DateTime(picked.year,picked.month,picked.day,due.hour,due.minute)); }
       },icon:const Icon(Icons.calendar_month),label:Text('Ngày dương: ${dateLabel(due)}')),
       Builder(builder:(_){ final l=lunar(due); return Text('Âm: ${l[0]}/${l[1]}/${l[2]}${l[3]==1?' (nhuận)':''}'); }),
       OutlinedButton.icon(onPressed:() async { final t=await showTimePicker(context:c,initialTime:TimeOfDay.fromDateTime(due)); if(t!=null) update(()=>due=DateTime(due.year,due.month,due.day,t.hour,t.minute)); },icon:const Icon(Icons.schedule),label:Text('Giờ: ${clock(due)}')),
@@ -229,7 +243,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       const SizedBox(height:12),DropdownButtonFormField<int>(initialValue:early,decoration:const InputDecoration(labelText:'Nhắc trước'),items:[0,5,10,15,30,60].map((x)=>DropdownMenuItem(value:x,child:Text('$x phút'))).toList(),onChanged:(v)=>update(()=>early=v!)),
       const SizedBox(height:12),TextField(controller:note,maxLines:3,decoration:const InputDecoration(labelText:'Ghi chú')),
       if(repeat=='Hằng năm (âm)') const Text('Ngày 30 chỉ nhắc ở năm có ngày đó. Ngày thuộc tháng nhuận chỉ nhắc khi tháng nhuận tương ứng tồn tại.'),
-    ])))),actions:[TextButton(onPressed:()=>Navigator.pop(c),child:const Text('Hủy')),FilledButton(onPressed:() async {
+    ]))),actions:[TextButton(onPressed:()=>Navigator.pop(c),child:const Text('Hủy')),FilledButton(onPressed:() async {
       if(title.text.trim().isEmpty) { message('Hãy nhập tên công việc.'); return; }
       if(repeat=='Không lặp'&&!due.isAfter(DateTime.now())) { message('Hãy chọn thời gian trong tương lai.'); return; }
       final t=Task(id:original.id,title:title.text.trim(),due:due,category:category,repeat:repeat,early:early,note:note.text,records:Map.from(original.records));
@@ -249,7 +263,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   Future<void> editAlarm(Alarm? alarm) async {
     var t=TimeOfDay(hour:alarm?.hour??6,minute:alarm?.minute??30);
     final label=TextEditingController(text:alarm?.label??'Thức dậy'); final days={...alarm?.weekdays??[1,2,3,4,5,6,7]};
-    await showDialog<void>(context:context,builder:(c)=>StatefulBuilder(builder:(c,update)=>AlertDialog(title:const Text('Báo thức'),content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[TextField(controller:label,decoration:const InputDecoration(labelText:'Tên báo thức')),OutlinedButton(onPressed:() async { final next=await showTimePicker(context:c,initialTime:t); if(next!=null) update(()=>t=next); },child:Text(t.format(c),style:const TextStyle(fontSize:32))),Wrap(spacing:6,children:List.generate(7,(i)=>FilterChip(label:Text(i==6?'CN':'T${i+2}'),selected:days.contains(i+1),onSelected:(v)=>update(() { if(v) { days.add(i+1); } else { days.remove(i+1); } }))),const Text('Báo thức lặp vào những ngày được chọn.') ])),actions:[TextButton(onPressed:()=>Navigator.pop(c),child:const Text('Hủy')),FilledButton(onPressed:() async { if(days.isEmpty) { message('Chọn ít nhất một ngày.'); return; } final a=Alarm(id:alarm?.id??DateTime.now().microsecondsSinceEpoch.toString(),label:label.text.trim().isEmpty?'Báo thức':label.text.trim(),hour:t.hour,minute:t.minute,weekdays:days.toList()..sort()); final index=db.alarms.indexWhere((x)=>x.id==a.id); if(index<0) { db.alarms.add(a); } else { db.alarms[index]=a; } Navigator.pop(c); await persist(); },child:const Text('Lưu'))]))); label.dispose();
+    await showDialog<void>(context:context,builder:(c)=>StatefulBuilder(builder:(c,update)=>AlertDialog(title:const Text('Báo thức'),content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[TextField(controller:label,decoration:const InputDecoration(labelText:'Tên báo thức')),OutlinedButton(onPressed:() async { final next=await showTimePicker(context:c,initialTime:t); if(next!=null) update(()=>t=next); },child:Text(t.format(c),style:const TextStyle(fontSize:32))),Wrap(spacing:6,children:List.generate(7,(i)=>FilterChip(label:Text(i==6?'CN':'T${i+2}'),selected:days.contains(i+1),onSelected:(v)=>update(() { if(v) { days.add(i+1); } else { days.remove(i+1); } })))),const Text('Báo thức lặp vào những ngày được chọn.') ])),actions:[TextButton(onPressed:()=>Navigator.pop(c),child:const Text('Hủy')),FilledButton(onPressed:() async { if(days.isEmpty) { message('Chọn ít nhất một ngày.'); return; } final a=Alarm(id:alarm?.id??DateTime.now().microsecondsSinceEpoch.toString(),label:label.text.trim().isEmpty?'Báo thức':label.text.trim(),hour:t.hour,minute:t.minute,weekdays:days.toList()..sort()); final index=db.alarms.indexWhere((x)=>x.id==a.id); if(index<0) { db.alarms.add(a); } else { db.alarms[index]=a; } Navigator.pop(c); await persist(); },child:const Text('Lưu'))]))); label.dispose();
   }
 
   Widget water() {
@@ -317,6 +331,7 @@ class _SettingsPageState extends State<SettingsPage> {
       ListTile(title:const Text('Ngừng hỏi lại từ'),subtitle:Text(s.reviewStop),onTap:() async { final t=await time(s.reviewStop); if(t!=null) { s.reviewStop=t; await save(); } }),
       toggle('Tổng kết cuối ngày',s.summary,(v)=>s.summary=v),ListTile(title:const Text('Giờ tổng kết'),subtitle:Text(s.summaryTime),onTap:() async { final t=await time(s.summaryTime); if(t!=null) { s.summaryTime=t; await save(); } }),
       OutlinedButton(onPressed:widget.reminders.requestPermissions,child:const Text('Cấp quyền thông báo / đúng giờ')),
+      OutlinedButton(onPressed:() async { await widget.reminders.plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()?.requestFullScreenIntentPermission(); },child:const Text('Cho phép báo thức toàn màn hình')),
       OutlinedButton(onPressed:() async { await widget.reminders.plugin.show(999999,'Nhắc việc','Thông báo thử. Nếu không thấy banner, kiểm tra cài đặt thông báo của điện thoại.',widget.reminders.details('task',actions:false)); },child:const Text('Thử thông báo')),
       const Padding(padding:EdgeInsets.all(12),child:Text('Nhắc việc và tổng kết được lên lịch trước 21 ngày, tự làm mới khi mở app. Báo thức và uống nước lặp hằng tuần/hằng ngày. Hãy mở app định kỳ. Chế độ tiết kiệm pin hoặc tắt cưỡng bức có thể ngăn thông báo. App dùng giờ Việt Nam.')),
     ]),

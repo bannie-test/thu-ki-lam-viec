@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
@@ -35,7 +36,10 @@ class Reminders {
       playSound:s.sound, enableVibration:s.vibration,
       category:kind=='alarm'?AndroidNotificationCategory.alarm:AndroidNotificationCategory.reminder,
       sound:kind=='alarm'?const UriAndroidNotificationSound('content://settings/system/alarm_alert'):null,
-      styleInformation:const BigTextStyleInformation(''),
+      fullScreenIntent:kind=='alarm',
+      ongoing:kind=='alarm',
+      autoCancel:kind!='alarm',
+      additionalFlags:kind=='alarm'?Int32List.fromList([4]):null,
       actions:!actions?null:[
         AndroidNotificationAction('done',kind=='water'?'Đã uống':kind=='alarm'?'Tắt':'Đã làm',showsUserInterface:true),
         const AndroidNotificationAction('snooze','10 phút nữa',showsUserInterface:true),
@@ -102,6 +106,14 @@ class Reminders {
         await schedule(DateTime(day.year,day.month,day.day,p[0],p[1]),'Tổng kết ${dateLabel(day)}',store.summary(day),'summary',{'day':dayKey(day)},actions:false);
       }
     }
+    final snoozes=(jsonDecode(store.prefs.getString('snoozes')??'[]') as List).cast<Map<String,dynamic>>();
+    snoozes.removeWhere((p)=>!DateTime.parse(p['until']).isAfter(now));
+    for(final p in snoozes) {
+      final t=store.tasks.where((t)=>t.id==p['task']).firstOrNull;
+      if(p['kind']=='task'&&(t==null||t.records[p['day']]=='done'||t.records[p['day']]=='skipped')) continue;
+      await schedule(DateTime.parse(p['until']),p['title'],p['body'],p['kind'],p);
+    }
+    await store.prefs.setString('snoozes',jsonEncode(snoozes));
     await store.prefs.setString('scheduledAt',now.toIso8601String());
   }
   Future<void> handle(NotificationResponse response) async {
@@ -109,11 +121,17 @@ class Reminders {
     final p=jsonDecode(response.payload!) as Map<String,dynamic>;
     final action=response.actionId, kind=p['kind'] as String;
     if(action=='snooze') {
-      _id=DateTime.now().millisecondsSinceEpoch%1000000000;
-      await schedule(DateTime.now().add(const Duration(minutes:10)),p['title'],p['body'],kind,p);
+      final snoozes=jsonDecode(store.prefs.getString('snoozes')??'[]') as List;
+      snoozes.removeWhere((x)=>x['kind']==kind&&x['task']==p['task']&&x['alarm']==p['alarm']);
+      snoozes.add({...p,'until':DateTime.now().add(const Duration(minutes:10)).toIso8601String()});
+      await store.prefs.setString('snoozes',jsonEncode(snoozes));
+      await rebuild();
       return;
     }
     if(action=='done'||action=='skip') {
+      final snoozes=jsonDecode(store.prefs.getString('snoozes')??'[]') as List;
+      snoozes.removeWhere((x)=>x['kind']==kind&&x['task']==p['task']&&x['alarm']==p['alarm']);
+      await store.prefs.setString('snoozes',jsonEncode(snoozes));
       if(kind=='water'&&action=='done') await store.drink(p['ml'] as int);
       if(kind=='task') {
         final t=store.tasks.where((t)=>t.id==p['task']).firstOrNull;

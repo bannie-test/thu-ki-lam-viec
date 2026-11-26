@@ -32,7 +32,7 @@ Workflow `.github/workflows/android.yml`: push main hoặc Run workflow → phâ
 ## Giới hạn cần biết
 
 - Android trước; chưa có host iOS. Chưa kiểm thử trên điện thoại thật.
-- Banner không luôn phủ trên mọi ứng dụng. Báo thức là thông báo ưu tiên cao với âm báo mặc định của máy, **chưa phải màn hình chuông reo liên tục toàn màn hình**. Các nút hành động mở app để cập nhật dữ liệu rõ ràng.
+- Banner không luôn phủ trên mọi ứng dụng. Báo thức dùng thông báo ưu tiên cao, cờ lặp âm báo và màn hình Tắt / Nhắc lại. Toàn màn hình cần bật quyền riêng và vẫn phụ thuộc chính sách Android/nhà sản xuất. Các nút hành động mở app để cập nhật dữ liệu rõ ràng.
 - Việc và tổng kết: lên lịch trước 21 ngày, làm mới khi mở/resume app, sửa dữ liệu hoặc xác nhận thông báo. Hãy mở app định kỳ; năm âm lên lịch lần tồn tại kế tiếp trong tối đa 8 năm. Báo thức/uống nước lặp bằng Android. Máy bị force-stop/tiết kiệm pin có thể chặn nhắc; bật quyền đúng giờ và thông báo.
 - Nội dung tổng kết trên thông báo là ảnh chụp dữ liệu ở lần cập nhật lịch gần nhất; mở app để xem dữ liệu hiện tại. Các nút chỉ cập nhật khi người dùng bấm, không tự suy đoán đã quên.
 - Không tự điểm danh trên ứng dụng khác; nhắc người dùng tự thực hiện.
