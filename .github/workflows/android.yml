@@ -84,7 +84,8 @@ jobs:
           actual=$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' "$RUNNER_TEMP/cert.txt" | tr -d ':' | tr '[:lower:]' '[:upper:]')
           expected=$(printf '%s' "$ANDROID_CERT_SHA256" | tr -d ':[:space:]' | tr '[:lower:]' '[:upper:]')
           [[ "$actual" == "$expected" ]] || { echo '::error::Signing certificate changed!'; exit 1; }
-          "$tools_dir/aapt" dump badging dist/nhac-viec.apk | head -1 | grep "name='vn.bannie.nhac_viec'"
+          "$tools_dir/aapt" dump badging dist/nhac-viec.apk > "$RUNNER_TEMP/package.txt"
+          grep "^package: name='vn.bannie.nhac_viec'" "$RUNNER_TEMP/package.txt"
           sha256sum dist/nhac-viec.apk > dist/nhac-viec.apk.sha256
       - uses: actions/upload-artifact@v4
         with:

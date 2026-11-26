@@ -76,7 +76,8 @@ class Reminders {
         final d=DateTime(now.year,now.month,now.day+n);
         if(!t.occurs(d)||t.status(d)!='pending') continue;
         final at=t.at(d);
-        await schedule(at.subtract(Duration(minutes:t.early)),t.category,t.title,'task',{'task':t.id,'day':dayKey(d)});
+        final earlyAt=at.subtract(Duration(minutes:t.early));
+        await schedule(earlyAt.isAfter(now)?earlyAt:at,t.category,t.title,'task',{'task':t.id,'day':dayKey(d)});
         if(++count>= (horizon>21?1:21)) break;
       }
     }
