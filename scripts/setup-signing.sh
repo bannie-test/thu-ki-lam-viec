@@ -4,6 +4,11 @@ set -euo pipefail
 umask 077
 for command in gh keytool openssl base64; do command -v "$command" >/dev/null || { echo "Missing: $command" >&2; exit 1; }; done
 repo="bannie-test/thu-ki-lam-viec"
+existing=$(gh secret list --repo "$repo" --json name --jq '[.[].name | select(. == "ANDROID_KEYSTORE_BASE64")] | length')
+if [[ "$existing" != "0" ]]; then
+  echo 'Repository already has a signing key. Refusing to replace it. Restore the original backup if necessary.' >&2
+  exit 1
+fi
 backup="${1:-$PWD/signing-backup}"
 mkdir -p "$backup"
 if [[ -e "$backup/nhac-viec.jks" || -e "$backup/password.txt" ]]; then

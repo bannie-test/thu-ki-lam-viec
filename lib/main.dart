@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -299,10 +300,19 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   late final Settings s; late final TextEditingController key,model;
   bool reveal=false,testing=false,hasKey=false;
+  Timer? refresh;
   @override void initState() { super.initState(); s=widget.store.settings; key=TextEditingController(); model=TextEditingController(text:s.model); secure.containsKey(key:'openai_key').then((v){ if(mounted) setState(()=>hasKey=v); }); }
-  @override void dispose() { key.dispose(); model.dispose(); super.dispose(); }
+  @override void dispose() { refresh?.cancel(); key.dispose(); model.dispose(); super.dispose(); }
   void message(String t) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(t))); }
-  Future<void> save() async { await widget.store.save(); if(mounted) setState((){}); }
+  Future<void> save() async {
+    await widget.store.save();
+    refresh?.cancel();
+    refresh=Timer(const Duration(milliseconds:500),() async {
+      try { await widget.reminders.rebuild(); }
+      catch(_) { if(mounted) message('Chưa cập nhật được lời nhắc. Hãy kiểm tra quyền thông báo.'); }
+    });
+    if(mounted) setState((){});
+  }
   Future<void> numeric(String title,num initial,void Function(double) apply,{double min=1,double max=10000}) async {
     final c=TextEditingController(text:'$initial');
     await showDialog<void>(context:context,builder:(ctx)=>AlertDialog(title:Text(title),content:TextField(controller:c,keyboardType:const TextInputType.numberWithOptions(decimal:true)),actions:[TextButton(onPressed:()=>Navigator.pop(ctx),child:const Text('Hủy')),FilledButton(onPressed:() async { final n=double.tryParse(c.text.replaceAll(',','.')); if(n==null||n<min||n>max) { message('Nhập giá trị từ $min đến $max.'); return; } apply(n); Navigator.pop(ctx); await save(); },child:const Text('Lưu'))])); c.dispose();

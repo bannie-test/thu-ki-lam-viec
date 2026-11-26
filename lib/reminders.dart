@@ -63,7 +63,13 @@ class Reminders {
       androidScheduleMode:exact?AndroidScheduleMode.exactAllowWhileIdle:AndroidScheduleMode.inexactAllowWhileIdle,
       payload:jsonEncode({...payload,'kind':kind,'title':title,'body':body}), matchDateTimeComponents:repeat);
   }
-  Future<void> rebuild() async {
+  Future<void> _tail=Future.value();
+  Future<void> rebuild() {
+    final next=_tail.then((_)=>_rebuild(),onError:(Object _,StackTrace __)=>_rebuild());
+    _tail=next;
+    return next;
+  }
+  Future<void> _rebuild() async {
     _queue=[]; _queueDates=[]; _id=1;
     final s=store.settings, now=DateTime.now();
     // Rolling horizon bounds vendor-specific pending-notification limits.

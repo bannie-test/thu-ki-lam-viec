@@ -1,6 +1,6 @@
 # Nhắc việc
 
-Flutter Android app cá nhân bằng tiếng Việt, chữ lớn, nhân vật đồng hồ. Tên app **Nhắc việc**, package cố định **vn.bannie.nhac_viec**, APK **nhac-viec.apk**.
+Flutter Android (7.0 trở lên) app cá nhân bằng tiếng Việt, chữ lớn, nhân vật đồng hồ. Tên app **Nhắc việc**, package cố định **vn.bannie.nhac_viec**, APK **nhac-viec.apk**.
 
 - Công việc, biểu tượng theo loại, ghi chú, nhắc trước và lặp theo ngày/tuần/năm dương/năm âm.
 - Lịch dương có ngày âm nhỏ bên dưới; lịch âm theo tháng âm Việt Nam (UTC+7), có tháng nhuận.
