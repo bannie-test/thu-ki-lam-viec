@@ -1,0 +1,97 @@
+name: Build nhac-viec.apk
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.35.7'
+          channel: stable
+          cache: true
+      - run: bash scripts/prepare.sh
+      - run: dart format lib test
+      - run: flutter analyze --no-fatal-infos
+      - run: flutter test
+      - name: Validate Android host
+        run: flutter build apk --debug
+  apk:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_CERT_SHA256: ${{ secrets.ANDROID_CERT_SHA256 }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require permanent signing identity
+        shell: bash
+        run: |
+          for name in ANDROID_KEYSTORE_BASE64 ANDROID_STORE_PASSWORD ANDROID_KEY_PASSWORD ANDROID_KEY_ALIAS ANDROID_CERT_SHA256; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::Missing $name. Run scripts/setup-signing.sh once; see docs/SETUP.md. Never generate a key inside each build."
+              exit 1
+            fi
+          done
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.35.7'
+          channel: stable
+          cache: true
+      - run: bash scripts/prepare.sh
+      - name: Restore signing key
+        shell: bash
+        run: |
+          umask 077
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/nhac-viec.jks"
+          echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/nhac-viec.jks" >> "$GITHUB_ENV"
+      - name: Build signed APK
+        shell: bash
+        run: |
+          build_number=$(( $(date +%s) - 1577836800 ))
+          flutter build apk --release --build-name=1.0.0 --build-number="$build_number"
+          mkdir -p dist
+          cp build/app/outputs/flutter-apk/app-release.apk dist/nhac-viec.apk
+      - name: Verify signature and package
+        shell: bash
+        run: |
+          tools_dir=$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)
+          "$tools_dir/apksigner" verify --verbose --print-certs dist/nhac-viec.apk > "$RUNNER_TEMP/cert.txt"
+          actual=$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' "$RUNNER_TEMP/cert.txt" | tr -d ':' | tr '[:lower:]' '[:upper:]')
+          expected=$(printf '%s' "$ANDROID_CERT_SHA256" | tr -d ':[:space:]' | tr '[:lower:]' '[:upper:]')
+          [[ "$actual" == "$expected" ]] || { echo '::error::Signing certificate changed!'; exit 1; }
+          "$tools_dir/aapt" dump badging dist/nhac-viec.apk | head -1 | grep "name='vn.bannie.nhac_viec'"
+          sha256sum dist/nhac-viec.apk > dist/nhac-viec.apk.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nhac-viec
+          path: dist/
+          retention-days: 30
+          if-no-files-found: error
+      - name: Remove restored signing key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/nhac-viec.jks"
