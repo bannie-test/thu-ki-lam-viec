@@ -48,8 +48,15 @@ class Reminders {
     ));
   }
   int _id=1;
+  List<Future<void> Function()>? _queue;
+  List<DateTime>? _queueDates;
   Future<void> schedule(DateTime when,String title,String body,String kind,Map<String,dynamic> payload,{bool actions=true, DateTimeComponents? repeat}) async {
     if(!when.isAfter(DateTime.now())) return;
+    if(_queue!=null) {
+      _queueDates!.add(when);
+      _queue!.add(()=>schedule(when,title,body,kind,payload,actions:actions,repeat:repeat));
+      return;
+    }
     final android=plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
     final exact=await android?.canScheduleExactNotifications()??false;
     await plugin.zonedSchedule(_id++,title,body,tz.TZDateTime.from(when,tz.local),details(kind,actions:actions),
@@ -57,7 +64,7 @@ class Reminders {
       payload:jsonEncode({...payload,'kind':kind,'title':title,'body':body}), matchDateTimeComponents:repeat);
   }
   Future<void> rebuild() async {
-    await plugin.cancelAll(); _id=1;
+    _queue=[]; _queueDates=[]; _id=1;
     final s=store.settings, now=DateTime.now();
     // Rolling horizon bounds vendor-specific pending-notification limits.
     // Refresh on app start/resume and every edit/action. Annual items get a next occurrence.
@@ -114,6 +121,13 @@ class Reminders {
       await schedule(DateTime.parse(p['until']),p['title'],p['body'],p['kind'],p);
     }
     await store.prefs.setString('snoozes',jsonEncode(snoozes));
+    final queue=_queue!, dates=_queueDates!;
+    final order=List.generate(queue.length,(i)=>i)..sort((a,b)=>dates[a].compareTo(dates[b]));
+    _queue=null; _queueDates=null;
+    await plugin.cancelAll();
+    // Keep below Samsung's 500-alarm limit; nearest reminders take priority.
+    // The background worker replenishes this queue without needing to open the app.
+    for(final i in order.take(400)) { await queue[i](); }
     await store.prefs.setString('scheduledAt',now.toIso8601String());
   }
   Future<void> handle(NotificationResponse response) async {

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:workmanager/workmanager.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
@@ -13,11 +14,28 @@ import 'store.dart';
 import 'reminders.dart';
 import 'ai.dart';
 
+@pragma('vm:entry-point')
+void refreshDispatcher() {
+  Workmanager().executeTask((name,input) async {
+    try {
+      WidgetsFlutterBinding.ensureInitialized();
+      final prefs=await SharedPreferences.getInstance();
+      await prefs.reload();
+      final reminders=Reminders(AppStore(prefs));
+      await reminders.init();
+      await reminders.rebuild();
+      return true;
+    } catch(_) { return false; }
+  });
+}
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final store=AppStore(await SharedPreferences.getInstance());
   final reminders=Reminders(store);
   await reminders.init();
+  await Workmanager().initialize(refreshDispatcher);
+  await Workmanager().registerPeriodicTask('nhac-viec-refresh','refresh-reminders',frequency:const Duration(hours:12));
   runApp(NhacViec(store:store,reminders:reminders));
 }
 
@@ -333,7 +351,7 @@ class _SettingsPageState extends State<SettingsPage> {
       OutlinedButton(onPressed:widget.reminders.requestPermissions,child:const Text('Cấp quyền thông báo / đúng giờ')),
       OutlinedButton(onPressed:() async { await widget.reminders.plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()?.requestFullScreenIntentPermission(); },child:const Text('Cho phép báo thức toàn màn hình')),
       OutlinedButton(onPressed:() async { await widget.reminders.plugin.show(999999,'Nhắc việc','Thông báo thử. Nếu không thấy banner, kiểm tra cài đặt thông báo của điện thoại.',widget.reminders.details('task',actions:false)); },child:const Text('Thử thông báo')),
-      const Padding(padding:EdgeInsets.all(12),child:Text('Nhắc việc và tổng kết được lên lịch trước 21 ngày, tự làm mới khi mở app. Báo thức và uống nước lặp hằng tuần/hằng ngày. Hãy mở app định kỳ. Chế độ tiết kiệm pin hoặc tắt cưỡng bức có thể ngăn thông báo. App dùng giờ Việt Nam.')),
+      const Padding(padding:EdgeInsets.all(12),child:Text('Nhắc việc và tổng kết được lên lịch trước tối đa 21 ngày, làm mới nền mỗi 12 giờ khi Android cho phép và khi mở app. Báo thức và uống nước lặp hằng tuần/hằng ngày. Nên mở app định kỳ để kiểm tra trạng thái nhắc. Chế độ tiết kiệm pin hoặc tắt cưỡng bức có thể ngăn thông báo. App dùng giờ Việt Nam.')),
     ]),
     const Padding(padding:EdgeInsets.all(16),child:Text('Nhắc việc · 1.0\nDữ liệu lưu trên máy. Xóa app sẽ xóa dữ liệu. Cài APK mới cùng chữ ký để giữ dữ liệu.')),
   ]));
