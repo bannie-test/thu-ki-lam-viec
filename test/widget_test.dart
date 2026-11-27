@@ -50,14 +50,48 @@ Future<void> tapIn(WidgetTester tester, Finder f) async {
 }
 
 void main() {
-  testWidgets('Lần đầu mở: hỏi tên rồi chào', (tester) async {
+  testWidgets('Lần đầu mở: hỏi cách xưng hô rồi chào', (tester) async {
     final store = await pumpApp(tester, onboarded: false);
-    expect(find.text('Chào mừng đến Việc của Mẹ'), findsOneWidget);
+    expect(find.text('Chào mừng đến Sổ việc'), findsOneWidget);
     await tester.enterText(find.byType(TextField), 'Bà Lan');
+    await tapIn(tester, find.textContaining('Cháu (gọi ông bà'));
+    // Live example in the dialog.
+    expect(find.textContaining('Bà Lan ơi, cháu nhắc Bà Lan'), findsOneWidget);
     await tester.tap(find.text('Bắt đầu'));
     await tester.pumpAndSettle();
     expect(store.onboarded, isTrue);
+    expect(
+      (store.settings.name, store.settings.selfPronoun),
+      ('Bà Lan', 'cháu'),
+    );
     expect(find.textContaining('Bà Lan!'), findsOneWidget);
+    expect(find.text('Việc của Bà Lan'), findsOneWidget);
+  });
+
+  testWidgets('Không đặt tên thì chào trung tính, đổi được trong Cài đặt', (
+    tester,
+  ) async {
+    final store = await pumpApp(tester, onboarded: false);
+    await tester.tap(find.text('Bắt đầu'));
+    await tester.pumpAndSettle();
+    expect(store.settings.name, '');
+    expect(find.text('Sổ việc'), findsOneWidget);
+    expect(find.textContaining(RegExp(r'^Chào buổi \S+!$')), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Cài đặt'));
+    await tester.pumpAndSettle();
+    await tapIn(tester, find.text('Ứng dụng gọi bạn là'));
+    await tester.enterText(find.byType(TextField), 'anh Tuấn');
+    await tapIn(tester, find.textContaining('Em (gọi anh chị'));
+    await tester.tap(find.text('Lưu'));
+    await tester.pumpAndSettle();
+    expect(
+      (store.settings.name, store.settings.selfPronoun),
+      ('anh Tuấn', 'em'),
+    );
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(find.textContaining(', Anh Tuấn!'), findsOneWidget);
   });
 
   testWidgets('Nhờ trợ lý tạo việc rồi đánh dấu xong', (tester) async {

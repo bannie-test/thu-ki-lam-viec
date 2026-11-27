@@ -89,7 +89,12 @@ class _TaskEditorPageState extends State<TaskEditorPage> {
     final text = title.text.trim();
     if (text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Mẹ ghi tên việc giúp con nhé.')),
+        SnackBar(
+          content: Text(() {
+            final a = Services.of(context).store.settings.address;
+            return '${a.You} ghi tên việc giúp ${a.self} nhé.';
+          }()),
+        ),
       );
       return;
     }

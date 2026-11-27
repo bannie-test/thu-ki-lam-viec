@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
+import '../core/address.dart';
 import '../core/format.dart';
 import '../core/lunar.dart';
 import '../models/category.dart';
@@ -60,6 +61,7 @@ class AiService {
     required List<Category> categories,
     required bool useAi,
     int defaultRemind = 0,
+    Address address = const Address(),
   }) async {
     if (!useAi || !await hasKey()) {
       final drafts = LocalParser.parse(
@@ -70,11 +72,11 @@ class AiService {
       );
       return AiResult(
         drafts,
-        'Đã hiểu theo cách đơn giản (không dùng AI). Mẹ xem lại giúp nhé.',
+        'Đã hiểu theo cách đơn giản (không dùng AI). ${address.You} xem lại giúp ${address.self} nhé.',
         usedAi: false,
       );
     }
-    final body = buildRequest(text, now, categories);
+    final body = buildRequest(text, now, categories, address: address);
     final key = (await vault.read())!.trim();
     http.Response res;
     try {
@@ -115,13 +117,16 @@ class AiService {
   static Map<String, dynamic> buildRequest(
     String text,
     DateTime now,
-    List<Category> categories,
-  ) {
+    List<Category> categories, {
+    Address address = const Address(),
+  }) {
     final lunar = LunarDate.fromSolar(now);
     final cats = categories.map((c) => '- ${c.id}: ${c.name}').join('\n');
     final system =
         '''
-Bạn là trợ lý giúp một người mẹ Việt Nam ghi lại việc cần làm. Từ lời nói hoặc tin nhắn của mẹ, hãy tách ra từng việc cụ thể.
+Bạn là trợ lý giúp một người Việt Nam ghi lại việc cần làm. Từ lời nói hoặc tin nhắn của người dùng, hãy tách ra từng việc cụ thể.
+
+Xưng hô: gọi người dùng là "${address.you}", tự xưng là "${address.self}"${address.polite ? ', lễ phép (có thể dùng "ạ")' : ''}.
 
 Hôm nay: ${longDate(now)} (dương lịch ${dayKey(now)}), giờ hiện tại ${two(now.hour)}:${two(now.minute)}, âm lịch ${lunar.day}/${lunar.month}${lunar.leap ? ' nhuận' : ''} năm ${canChiYear(lunar.year)}. Múi giờ Việt Nam (UTC+7).
 
@@ -130,14 +135,14 @@ $cats
 
 Quy tắc:
 - title: ngắn gọn, tự nhiên, viết hoa chữ đầu, không chứa ngày giờ (ví dụ "Uống thuốc huyết áp").
-- Nếu mẹ nói theo âm lịch (rằm, mùng 1, "âm", giỗ, Tết...): calendar = "lunar", điền lunar_day và lunar_month (lunar_month = 0 nếu chỉ nói "rằm"/"mùng một" mà không nói tháng → hiểu là lần gần nhất sắp tới), để date = "".
+- Nếu người dùng nói theo âm lịch (rằm, mùng 1, "âm", giỗ, Tết...): calendar = "lunar", điền lunar_day và lunar_month (lunar_month = 0 nếu chỉ nói "rằm"/"mùng một" mà không nói tháng → hiểu là lần gần nhất sắp tới), để date = "".
 - Ngược lại: calendar = "solar", date = YYYY-MM-DD (dương lịch), lunar_day = 0, lunar_month = 0. "Mai" = ngày mai, "mốt"/"ngày kia" = 2 ngày nữa.
 - time: "HH:MM" 24 giờ; "" nếu cả ngày. "7 giờ tối" = "19:00", "sáng" ≈ "07:00", "trưa" ≈ "11:30", "chiều" ≈ "15:00", "tối" ≈ "19:00".
 - repeat: none, daily, weekly, monthly, yearly (dương lịch), lunarMonthly (mỗi tháng âm, ví dụ mỗi rằm), lunarYearly (mỗi năm âm, ví dụ ngày giỗ).
 - remind_before: số phút nhắc trước, chỉ được chọn -1 (không nhắc), 0, 15, 60, 1440. Mặc định 0 nếu có giờ, -1 nếu cả ngày; đám giỗ, cuộc hẹn quan trọng nên nhắc trước 1440.
-- important: true nếu mẹ nói quan trọng/nhớ kỹ/đừng quên, hoặc là uống thuốc, khám bệnh, giỗ.
+- important: true nếu người dùng nói quan trọng/nhớ kỹ/đừng quên, hoặc là uống thuốc, khám bệnh, giỗ.
 - note: thông tin thêm hữu ích (địa điểm, đồ cần mang...), "" nếu không có.
-- message: một câu ngắn, ấm áp gửi mẹ, tóm tắt đã tạo gì hoặc hỏi lại nếu thiếu thông tin quan trọng.
+- message: một câu ngắn, ấm áp gửi người dùng theo đúng cách xưng hô ở trên, tóm tắt đã tạo gì hoặc hỏi lại nếu thiếu thông tin quan trọng.
 - Nếu không có việc nào, trả về tasks rỗng và giải thích trong message.''';
 
     const taskSchema = {
@@ -226,18 +231,18 @@ Quy tắc:
       data = jsonDecode(raw) as Map<String, dynamic>;
     } catch (_) {
       throw const AiException(
-        'AI trả về dữ liệu lạ. Mẹ thử lại hoặc nhập tay nhé.',
+        'AI trả về dữ liệu lạ. Hãy thử lại hoặc nhập tay nhé.',
       );
     }
     final stop = data['stop_reason'];
     if (stop == 'refusal') {
       throw const AiException(
-        'AI không xử lý yêu cầu này. Mẹ thử nói cách khác hoặc nhập tay nhé.',
+        'AI không xử lý yêu cầu này. Hãy thử nói cách khác hoặc nhập tay nhé.',
       );
     }
     if (stop == 'max_tokens') {
       throw const AiException(
-        'Yêu cầu dài quá. Mẹ chia nhỏ ra rồi thử lại nhé.',
+        'Yêu cầu dài quá. Hãy chia nhỏ ra rồi thử lại nhé.',
       );
     }
     final text = [
@@ -249,7 +254,7 @@ Quy tắc:
       out = jsonDecode(text) as Map<String, dynamic>;
     } catch (_) {
       throw const AiException(
-        'AI trả về dữ liệu lạ. Mẹ thử lại hoặc nhập tay nhé.',
+        'AI trả về dữ liệu lạ. Hãy thử lại hoặc nhập tay nhé.',
       );
     }
     final ids = categories.map((c) => c.id).toSet();
@@ -307,7 +312,7 @@ Quy tắc:
     final message = (out['message'] as String? ?? '').trim();
     return AiResult(
       tasks,
-      message.isEmpty ? 'Mẹ xem lại các việc bên dưới nhé.' : message,
+      message.isEmpty ? 'Hãy xem lại các việc bên dưới nhé.' : message,
       usedAi: true,
     );
   }

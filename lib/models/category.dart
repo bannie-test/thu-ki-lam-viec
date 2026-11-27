@@ -9,7 +9,7 @@ class AppIcon {
   const AppIcon(this.key, this.icon, this.label);
 }
 
-/// Icons are grouped by life area so Mẹ can find one quickly.
+/// Icons are grouped by life area so the right one is quick to find.
 class IconGroup {
   final String name;
   final List<AppIcon> icons;

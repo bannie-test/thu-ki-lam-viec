@@ -352,7 +352,7 @@ class LocalParser {
     var s = text;
     final patterns = [
       RegExp(
-        r'\b(nhắc( mẹ| tôi| em)?|nhớ|ghi chú|thêm việc)\b[:,]?\s*',
+        r'\b(nhắc( (mẹ|bố|ba|má|bà|ông|tôi|em|anh|chị|con|cháu|mình|tớ))?|nhớ|ghi chú|thêm việc)\b[:,]?\s*',
         caseSensitive: false,
       ),
       RegExp(

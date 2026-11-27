@@ -1,6 +1,7 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
+import '../core/address.dart';
 import '../core/format.dart';
 import '../data/store.dart';
 import '../models/task.dart';
@@ -72,6 +73,30 @@ class PhoneReminders implements Reminders {
     return items.take(maxScheduled).toList();
   }
 
+  /// Notification title and body, addressed the way the user chose,
+  /// e.g. "Bà ơi, đến giờ rồi ạ · Hôm nay lúc 07:00 · Sức khỏe".
+  static (String, String) reminderText(
+    Occurrence o,
+    DateTime at,
+    Address a,
+    String categoryName,
+  ) {
+    final t = o.task;
+    final lead = t.time == null
+        ? (sameDay(o.day, at) ? 'hôm nay có việc này' : 'sắp có việc này')
+        : (t.remindBefore > 0 ? 'sắp đến giờ rồi' : 'đến giờ rồi');
+    final opening = a.call.isEmpty
+        ? '${lead[0].toUpperCase()}${lead.substring(1)}'
+        : '${a.call}$lead';
+    final when = t.time == null
+        ? relativeDay(o.day, at)
+        : '${relativeDay(o.day, at)} lúc ${clock(t.time!)}';
+    final title = '${t.important ? '⭐ ' : ''}${t.title}';
+    final body =
+        '$opening${a.a} · $when · $categoryName${t.note.isEmpty ? '' : '\n${t.note}'}';
+    return (title, body);
+  }
+
   Future<void> _rebuild(AppStore store) async {
     await _plugin.cancelAll();
     if (!store.settings.notifications) return;
@@ -84,29 +109,31 @@ class PhoneReminders implements Reminders {
       android: AndroidNotificationDetails(
         'viec_can_lam_v2',
         'Việc cần làm',
-        channelDescription: 'Nhắc các việc Mẹ đã ghi',
+        channelDescription: 'Nhắc các việc đã ghi trong Sổ việc',
         importance: Importance.max,
         priority: Priority.high,
         category: AndroidNotificationCategory.reminder,
       ),
     );
     var id = 1;
+    final address = store.settings.address;
     for (final (at, o) in plan(store, DateTime.now())) {
-      final t = o.task;
-      final cat = store.category(t.categoryId);
-      final when = t.time == null
-          ? relativeDay(o.day, at)
-          : '${relativeDay(o.day, at)} lúc ${clock(t.time!)}';
+      final (title, body) = reminderText(
+        o,
+        at,
+        address,
+        store.category(o.task.categoryId).name,
+      );
       await _plugin.zonedSchedule(
         id++,
-        '${t.important ? '⭐ ' : ''}${t.title}',
-        '$when · ${cat.name}${t.note.isEmpty ? '' : '\n${t.note}'}',
+        title,
+        body,
         tz.TZDateTime.from(at, tz.local),
         details,
         androidScheduleMode: exact
             ? AndroidScheduleMode.exactAllowWhileIdle
             : AndroidScheduleMode.inexactAllowWhileIdle,
-        payload: t.id,
+        payload: o.task.id,
       );
     }
   }

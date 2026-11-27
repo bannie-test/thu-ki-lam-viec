@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../app.dart';
 import '../core/format.dart';
+import 'address_form.dart';
 import 'calendar_page.dart';
 import 'categories_page.dart';
 import 'settings_page.dart';
@@ -46,45 +47,16 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
       await s.reminders.rebuild(s.store);
       return;
     }
-    final name = TextEditingController(text: s.store.settings.name);
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (c) => AlertDialog(
-        icon: const Icon(Icons.favorite_rounded, size: 40),
-        title: const Text('Chào mừng đến Việc của Mẹ'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Ứng dụng giúp ghi nhớ việc cần làm, có cả lịch âm. Ứng dụng nên gọi bạn là gì?',
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: name,
-                decoration: const InputDecoration(
-                  labelText: 'Tên gọi',
-                  hintText: 'Ví dụ: Mẹ',
-                ),
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'Bước tiếp theo, hãy cho phép thông báo để được nhắc đúng giờ.',
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          FilledButton(
-            onPressed: () => Navigator.pop(c),
-            child: const Text('Bắt đầu'),
-          ),
-        ],
-      ),
+    final a = await askAddress(
+      context,
+      s.store.settings.address,
+      firstRun: true,
     );
-    s.store.settings.name = name.text.trim().isEmpty ? 'Mẹ' : name.text.trim();
+    if (a != null) {
+      s.store.settings
+        ..name = a.name
+        ..selfPronoun = a.self;
+    }
     await s.store.finishOnboarding();
     try {
       await s.reminders.requestPermissions();
@@ -99,7 +71,12 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
       CalendarPage(selected: selectedDay),
       const CategoriesPage(),
     ];
-    const titles = ['Việc của Mẹ', 'Lịch âm dương', 'Nhóm việc'];
+    final a = Services.of(context).store.settings.address;
+    final titles = [
+      a.hasName ? 'Việc của ${a.You}' : 'Sổ việc',
+      'Lịch âm dương',
+      'Nhóm việc',
+    ];
     return Scaffold(
       appBar: AppBar(
         title: Text(titles[tab]),

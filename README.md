@@ -1,13 +1,14 @@
-# Việc của Mẹ
+# Sổ việc
 
-Ứng dụng Android ghi việc cần làm bằng tiếng Việt, làm cho Mẹ: chữ to, nút lớn, có cả lịch dương và lịch âm. Package cố định **vn.bannie.nhac_viec**, APK **nhac-viec.apk**.
+Ứng dụng Android ghi việc cần làm bằng tiếng Việt, dễ dùng cho người lớn tuổi: chữ to, nút lớn, có cả lịch dương và lịch âm. Package cố định **vn.bannie.nhac_viec**, APK **nhac-viec.apk**.
 
 ## Tính năng
 
-- **Hôm nay**: lời chào, ngày dương và âm (năm can chi), báo Rằm, mùng Một và ngày lễ, thanh tiến độ, việc quá hạn, việc hôm nay và 7 ngày tới. Chạm vòng tròn lớn để đánh dấu xong (có Hoàn tác).
+- **Xưng hô tùy chỉnh**: lần đầu mở, ứng dụng hỏi nên gọi người dùng là gì (ví dụ Bà, Cô Lan, Anh Tuấn; để trống thì gọi "bạn") và tự xưng là gì (con, cháu, em hoặc mình). Có thể đổi trong Cài đặt → Xưng hô. Dùng trong lời chào, tiêu đề màn hình, thông báo ("Bà ơi, đến giờ rồi ạ") và lời của trợ lý AI.
+- **Hôm nay**: lời chào theo cách xưng hô, ngày dương và âm (năm can chi), báo Rằm, mùng Một và ngày lễ, thanh tiến độ, việc quá hạn, việc hôm nay và 7 ngày tới. Chạm vòng tròn lớn để đánh dấu xong (có Hoàn tác).
 - **Lịch âm dương**: xem theo tháng dương (ngày âm nhỏ bên dưới) hoặc theo tháng âm (kể cả tháng nhuận). Rằm và mùng Một được tô màu, ngày lễ Việt Nam được đánh dấu, chấm màu cho biết ngày đó có việc thuộc nhóm nào.
 - **Nhóm việc bằng biểu tượng**: 7 nhóm có sẵn (Sức khỏe, Gia đình, Đi chợ & nhà cửa, Giỗ lễ & chùa, Hẹn & gặp gỡ, Tiền nong, Việc khác). Có thể tạo hoặc sửa nhóm: chọn 1 trong 48 biểu tượng (chia theo 6 nhóm chủ đề) và 10 màu.
-- **Trợ lý AI tạo việc**: nói (giọng tiếng Việt) hoặc gõ tự nhiên, nhiều việc một lúc, ví dụ *"Giỗ ông nội 12/3 âm lịch"*, *"Mai 7 giờ sáng uống thuốc"*. Trợ lý dùng Claude (`claude-opus-5-5`, structured output). Mẹ xem lại, sửa hoặc bỏ chọn từng việc rồi mới lưu. Không có mã khóa hoặc không có mạng thì dùng bộ hiểu tiếng Việt đơn giản, chạy ngay trên máy.
+- **Trợ lý AI tạo việc**: nói (giọng tiếng Việt) hoặc gõ tự nhiên, nhiều việc một lúc, ví dụ *"Giỗ ông nội 12/3 âm lịch"*, *"Mai 7 giờ sáng uống thuốc"*. Trợ lý dùng Claude (`claude-opus-5-5`, structured output). Người dùng xem lại, sửa hoặc bỏ chọn từng việc rồi mới lưu. Không có mã khóa hoặc không có mạng thì dùng bộ hiểu tiếng Việt đơn giản, chạy ngay trên máy.
 - **Lặp lại**: mỗi ngày, tuần, tháng hoặc năm (dương lịch); mỗi tháng âm (Rằm, mùng Một) hoặc mỗi năm âm (ngày giỗ, không tính vào tháng nhuận). Ngày 30 âm rơi vào tháng thiếu thì chuyển sang ngày 29.
 - **Nhắc trên điện thoại**: đúng giờ, trước 15 phút, trước 1 giờ hoặc trước 1 ngày. Lên lịch sẵn tối đa 60 lời nhắc gần nhất trong 45 ngày tới, làm mới mỗi lần mở app hoặc sửa việc.
 - **Giao diện thay đổi theo cài đặt**: 6 bảng màu (Hoa sen, Trà xanh, Biển xanh, Nắng mai, Cà phê sữa, Hoa cà) hoặc tự chọn màu; chế độ sáng, tối hoặc theo máy; 4 cỡ chữ; chữ đậm; tương phản cao; bo góc hoặc góc vuông; nút to rộng rãi. Mọi thay đổi áp dụng ngay, có ô xem trước.
@@ -16,20 +17,20 @@
 
 - Dữ liệu chỉ lưu trên điện thoại (SharedPreferences).
 - Mã khóa Claude API lưu trong Android Keystore (flutter_secure_storage), không nằm trong repo.
-- Chỉ câu Mẹ nói hoặc gõ khi bấm **Tạo việc** mới được gửi tới Anthropic. Danh sách việc và cài đặt không bao giờ được gửi đi.
+- Chỉ câu người dùng nói hoặc gõ khi bấm **Tạo việc**, kèm cách xưng hô, mới được gửi tới Anthropic. Danh sách việc và cài đặt không bao giờ được gửi đi.
 
 ## Cấu trúc mã
 
 ```
 lib/
-  core/       lunar.dart (âm lịch, can chi, ngày lễ), format.dart
+  core/       lunar.dart (âm lịch, can chi, ngày lễ), address.dart (xưng hô), format.dart
   models/     task.dart (lặp lại dương/âm), category.dart (nhóm biểu tượng), settings.dart
   data/       store.dart (lưu trữ, truy vấn hôm nay/quá hạn/sắp tới)
   services/   ai_service.dart (Claude), local_parser.dart (không cần AI),
               notifications.dart, speech.dart
   theme/      app_theme.dart (dựng ThemeData từ cài đặt)
   ui/         home_shell, today_page, calendar_page, categories_page,
-              task_editor, ai_sheet, settings_page, widgets
+              task_editor, ai_sheet, settings_page, address_form, widgets
 test/         logic_test (âm lịch, lặp lại, bộ hiểu câu), services_test (AI, kho, nhắc, giao diện),
               widget_test (luồng sử dụng chính)
 ```
@@ -51,7 +52,7 @@ flutter run
 
 Workflow `.github/workflows/android.yml`:
 
-- **develop**: phân tích, test, build APK debug và tải lên artifact **viec-cua-me-thu-nghiem** (14 ngày). Bản thử có package `vn.bannie.nhac_viec.dev`, cài song song với bản chính, không đụng dữ liệu thật.
+- **develop**: phân tích, test, build APK debug và tải lên artifact **so-viec-thu-nghiem** (14 ngày). Bản thử có package `vn.bannie.nhac_viec.dev`, cài song song với bản chính, không đụng dữ liệu thật.
 - **main**: như trên, rồi build release có chữ ký cố định, kiểm tra SHA-256 chứng chỉ và tải lên artifact **nhac-viec**. **Cần thiết lập Secrets một lần: [docs/SETUP.md](docs/SETUP.md).**
 
 ## Giới hạn

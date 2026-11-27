@@ -1,7 +1,16 @@
+import '../core/address.dart';
+
 /// All user-adjustable preferences. The whole UI theme is derived from these
 /// values, so changing a setting re-themes the app instantly.
 class AppSettings {
+  // ---- Xưng hô ----
+  /// What the app calls the user ("Bà", "Cô Lan"). Empty = "bạn".
   String name;
+
+  /// What the app calls itself: con, cháu, em, mình.
+  String selfPronoun;
+
+  Address get address => Address(name: name, self: selfPronoun);
 
   // ---- Giao diện ----
   String preset; // id of a ThemePreset, or 'custom'
@@ -26,7 +35,8 @@ class AppSettings {
   bool aiEnabled;
 
   AppSettings({
-    this.name = 'Mẹ',
+    this.name = '',
+    this.selfPronoun = 'mình',
     this.preset = 'sen',
     this.seedColor = 0xFFC2185B,
     this.mode = 'light',
@@ -45,6 +55,7 @@ class AppSettings {
 
   Map<String, dynamic> toJson() => {
     'name': name,
+    'selfPronoun': selfPronoun,
     'preset': preset,
     'seedColor': seedColor,
     'mode': mode,
@@ -65,6 +76,9 @@ class AppSettings {
     final d = AppSettings();
     return AppSettings(
       name: j['name'] as String? ?? d.name,
+      selfPronoun: Address.selfOptions.containsKey(j['selfPronoun'])
+          ? j['selfPronoun'] as String
+          : d.selfPronoun,
       preset: j['preset'] as String? ?? d.preset,
       seedColor: j['seedColor'] as int? ?? d.seedColor,
       mode: j['mode'] as String? ?? d.mode,

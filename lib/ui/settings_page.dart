@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../app.dart';
+import '../core/address.dart';
+import 'address_form.dart';
 import '../models/settings.dart';
 import '../models/task.dart';
 import '../theme/app_theme.dart';
@@ -220,41 +222,35 @@ class SettingsPage extends StatelessWidget {
                 ],
               ),
 
-              const _Header('Xưng hô', Icons.person_rounded),
+              const _Header('Xưng hô', Icons.record_voice_over_rounded),
               _Group(
                 children: [
                   ListTile(
-                    leading: const Icon(Icons.badge_rounded),
-                    title: const Text('Ứng dụng gọi là'),
-                    subtitle: Text(s.name),
+                    leading: const Icon(Icons.badge_rounded, size: 28),
+                    title: const Text('Ứng dụng gọi bạn là'),
+                    subtitle: Text(
+                      s.address.hasName ? s.name : 'Chưa đặt (gọi là "bạn")',
+                    ),
                     trailing: const Icon(Icons.edit_rounded),
-                    onTap: () async {
-                      final c = TextEditingController(text: s.name);
-                      final v = await showDialog<String>(
-                        context: context,
-                        builder: (d) => AlertDialog(
-                          title: const Text('Ứng dụng nên gọi là gì?'),
-                          content: TextField(
-                            controller: c,
-                            autofocus: true,
-                            decoration: const InputDecoration(
-                              hintText: 'Ví dụ: Mẹ, Bà, Cô Lan',
-                            ),
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(d),
-                              child: const Text('Thôi'),
-                            ),
-                            FilledButton(
-                              onPressed: () => Navigator.pop(d, c.text.trim()),
-                              child: const Text('Lưu'),
-                            ),
-                          ],
-                        ),
-                      );
-                      if (v != null && v.isNotEmpty) set((x) => x.name = v);
-                    },
+                    onTap: () => _editAddress(context),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.face_rounded, size: 28),
+                    title: const Text('Ứng dụng tự xưng là'),
+                    subtitle: Text(
+                      Address.selfOptions[s.selfPronoun] ?? s.selfPronoun,
+                    ),
+                    trailing: const Icon(Icons.edit_rounded),
+                    onTap: () => _editAddress(context),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    child: Text(
+                      'Dùng trong lời chào, thông báo nhắc việc và lời của trợ lý.',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -327,7 +323,7 @@ class SettingsPage extends StatelessWidget {
               SizedBox(height: look.gap * 2),
               Center(
                 child: Text(
-                  'Việc của Mẹ · dữ liệu lưu trên điện thoại',
+                  'Sổ việc · dữ liệu lưu trên điện thoại',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
@@ -337,6 +333,17 @@ class SettingsPage extends StatelessWidget {
           );
         },
       ),
+    );
+  }
+
+  static Future<void> _editAddress(BuildContext context) async {
+    final store = Services.of(context).store;
+    final a = await askAddress(context, store.settings.address);
+    if (a == null) return;
+    await store.updateSettings(
+      (x) => x
+        ..name = a.name
+        ..selfPronoun = a.self,
     );
   }
 
@@ -560,7 +567,7 @@ class _AiSettingsState extends State<_AiSettings> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Mã khóa Claude API (bắt đầu bằng "sk-ant-"). Nhờ con cháu tạo tại console.anthropic.com.',
+              'Mã khóa Claude API (bắt đầu bằng "sk-ant-"). Có thể nhờ người thân tạo tại console.anthropic.com.',
             ),
             const SizedBox(height: 12),
             TextField(
@@ -631,7 +638,7 @@ class _AiSettingsState extends State<_AiSettings> {
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           child: Text(
-            'Trợ lý dùng Claude của Anthropic. Chỉ câu Mẹ nói hoặc gõ khi bấm "Tạo việc" mới được gửi đi; danh sách việc và cài đặt luôn ở trên máy. Phí dùng API tính riêng theo tài khoản của mã khóa.',
+            'Trợ lý dùng Claude của Anthropic. Chỉ câu bạn nói hoặc gõ khi bấm "Tạo việc" (kèm cách xưng hô) mới được gửi đi; danh sách việc và cài đặt luôn ở trên máy. Phí dùng API tính riêng theo tài khoản của mã khóa.',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),

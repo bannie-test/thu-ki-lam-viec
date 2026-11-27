@@ -86,7 +86,7 @@ class _AiSheetState extends State<AiSheet> {
       setState(() {
         listening = false;
         error =
-            'Không mở được micro. Mẹ cho phép ứng dụng dùng micro, hoặc gõ chữ cũng được nhé.';
+            'Không mở được micro. Hãy cho phép ứng dụng dùng micro, hoặc gõ chữ cũng được nhé.';
       });
     }
   }
@@ -94,7 +94,10 @@ class _AiSheetState extends State<AiSheet> {
   Future<void> _create() async {
     final text = input.text.trim();
     if (text.isEmpty) {
-      setState(() => error = 'Mẹ nói hoặc gõ việc cần làm trước nhé.');
+      setState(
+        () => error =
+            '${Services.of(context).store.settings.address.You} nói hoặc gõ việc cần làm trước nhé.',
+      );
       return;
     }
     final s = Services.of(context);
@@ -113,6 +116,7 @@ class _AiSheetState extends State<AiSheet> {
         categories: s.store.categories,
         useAi: s.store.settings.aiEnabled,
         defaultRemind: s.store.settings.defaultRemind,
+        address: s.store.settings.address,
       );
       setState(() {
         drafts = r.tasks;
@@ -122,7 +126,7 @@ class _AiSheetState extends State<AiSheet> {
     } on AiException catch (e) {
       setState(() => error = e.message);
     } catch (_) {
-      setState(() => error = 'Có lỗi khi tạo việc. Mẹ thử lại nhé.');
+      setState(() => error = 'Có lỗi khi tạo việc. Hãy thử lại nhé.');
     } finally {
       if (mounted) setState(() => working = false);
     }
@@ -148,6 +152,7 @@ class _AiSheetState extends State<AiSheet> {
     final scheme = theme.colorScheme;
     final look = Look.of(context);
     final aiOn = s.store.settings.aiEnabled;
+    final aiAddr = s.store.settings.address;
 
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
@@ -187,7 +192,7 @@ class _AiSheetState extends State<AiSheet> {
                 final smart = aiOn && (snap.data ?? false);
                 return Text(
                   smart
-                      ? 'Mẹ cứ nói tự nhiên, có thể nhiều việc một lúc. Trợ lý AI sẽ hiểu cả ngày âm lịch.'
+                      ? '${aiAddr.You} cứ nói tự nhiên, có thể nhiều việc một lúc. Trợ lý AI sẽ hiểu cả ngày âm lịch.'
                       : 'Đang dùng chế độ hiểu đơn giản (không cần mạng). Bật AI trong Cài đặt để hiểu tốt hơn.',
                   style: theme.textTheme.bodyLarge?.copyWith(
                     color: scheme.onSurfaceVariant,
@@ -204,7 +209,7 @@ class _AiSheetState extends State<AiSheet> {
               textCapitalization: TextCapitalization.sentences,
               decoration: InputDecoration(
                 hintText: listening
-                    ? 'Đang nghe… Mẹ nói đi ạ'
+                    ? 'Đang nghe… ${aiAddr.You} nói đi${aiAddr.a}'
                     : 'Ví dụ: Chủ nhật 8 giờ sáng đi ăn cỗ nhà bác Hai',
               ),
             ),

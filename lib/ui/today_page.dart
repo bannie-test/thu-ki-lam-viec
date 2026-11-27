@@ -114,7 +114,7 @@ class _DayHeader extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '${greeting(now)}, ${store.settings.name}!',
+                store.settings.address.greet(greeting(now)),
                 style: theme.textTheme.headlineSmall?.copyWith(color: onC),
               ),
               const SizedBox(height: 12),

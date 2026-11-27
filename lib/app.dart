@@ -55,7 +55,7 @@ class SoViecApp extends StatelessWidget {
         builder: (context, _) {
           final s = store.settings;
           return MaterialApp(
-            title: 'Việc của Mẹ',
+            title: 'Sổ việc',
             debugShowCheckedModeBanner: false,
             locale: const Locale('vi'),
             supportedLocales: const [Locale('vi')],

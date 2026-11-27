@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:nhac_viec/core/address.dart';
 import 'package:nhac_viec/core/lunar.dart';
 import 'package:nhac_viec/data/store.dart';
 import 'package:nhac_viec/models/category.dart';
@@ -55,7 +56,7 @@ void main() {
     test('Đọc kết quả: dương lịch, âm lịch, dữ liệu sai', () {
       final r = AiService.parseResponse(
         claudeReply({
-          'message': 'Con đã ghi 3 việc cho Mẹ.',
+          'message': 'Cháu đã ghi 3 việc cho Bà ạ.',
           'tasks': [
             {
               'title': 'Uống thuốc',
@@ -115,7 +116,7 @@ void main() {
         cats,
       );
       expect(r.usedAi, isTrue);
-      expect(r.message, 'Con đã ghi 3 việc cho Mẹ.');
+      expect(r.message, 'Cháu đã ghi 3 việc cho Bà ạ.');
       expect(r.tasks.length, 3);
       final a = r.tasks[0], b = r.tasks[1], c = r.tasks[2];
       expect(
@@ -363,6 +364,76 @@ void main() {
         Brightness.light,
       );
       expect(custom.colorScheme.primary, isNot(a.colorScheme.primary));
+    });
+  });
+
+  group('Xưng hô', () {
+    test('Có tên và xưng cháu', () {
+      const a = Address(name: 'bà', self: 'cháu');
+      expect(a.greet('Chào buổi sáng'), 'Chào buổi sáng, Bà!');
+      expect(a.call, 'Bà ơi, ');
+      expect(a.a, ' ạ');
+    });
+
+    test('Không có tên thì trung tính', () {
+      const a = Address();
+      expect(a.greet('Chào buổi tối'), 'Chào buổi tối!');
+      expect((a.you, a.call, a.a), ('bạn', '', ''));
+    });
+
+    test('Thông báo dùng cách xưng hô đã chọn', () {
+      final day = DateTime(2026, 11, 28);
+      final t = Task(
+        id: '1',
+        title: 'Uống thuốc',
+        date: day,
+        time: 420,
+        remindBefore: 0,
+        important: true,
+      );
+      final at = DateTime(2026, 11, 28, 7);
+      final (title, body) = PhoneReminders.reminderText(
+        Occurrence(t, day),
+        at,
+        const Address(name: 'Bà', self: 'cháu'),
+        'Sức khỏe',
+      );
+      expect(title, '⭐ Uống thuốc');
+      expect(body, 'Bà ơi, đến giờ rồi ạ · Hôm nay lúc 07:00 · Sức khỏe');
+      final (_, plain) = PhoneReminders.reminderText(
+        Occurrence(t..remindBefore = 15, day),
+        at,
+        const Address(),
+        'Sức khỏe',
+      );
+      expect(plain, 'Sắp đến giờ rồi · Hôm nay lúc 07:00 · Sức khỏe');
+    });
+
+    test('Trợ lý AI được báo cách xưng hô', () {
+      final body = AiService.buildRequest(
+        'x',
+        now,
+        cats,
+        address: const Address(name: 'Cô Lan', self: 'em'),
+      );
+      expect(
+        body['system'] as String,
+        contains('gọi người dùng là "Cô Lan", tự xưng là "em"'),
+      );
+      expect(body['system'] as String, isNot(contains('mẹ')));
+    });
+
+    test('Lưu và đọc lại cách xưng hô', () async {
+      SharedPreferences.setMockInitialValues({});
+      final store = AppStore(await SharedPreferences.getInstance());
+      await store.updateSettings(
+        (s) => s
+          ..name = 'Bà'
+          ..selfPronoun = 'cháu',
+      );
+      final again = AppStore(store.prefs);
+      expect((again.settings.name, again.settings.selfPronoun), ('Bà', 'cháu'));
+      expect(AppSettings().name, '');
     });
   });
 }
