@@ -107,7 +107,7 @@ class _CategoryCard extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                pending == 0 ? 'Không có việc' : '$pending việc sắp tới',
+                pending == 0 ? 'Không có việc' : '$pending việc đang chờ',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),

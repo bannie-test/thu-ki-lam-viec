@@ -122,8 +122,11 @@ class _DayHeader extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Container(
-                    width: 84,
-                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    width: 92,
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 8,
+                      horizontal: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: scheme.surface,
                       borderRadius: BorderRadius.circular(look.radius * .7),
@@ -137,10 +140,12 @@ class _DayHeader extends StatelessWidget {
                             height: 1.1,
                           ),
                         ),
-                        Text(
-                          'Âm ${lunar.day}/${lunar.month}',
-                          style: theme.textTheme.labelLarge?.copyWith(
-                            color: scheme.onSurfaceVariant,
+                        FittedBox(
+                          child: Text(
+                            'Âm ${lunar.day}/${lunar.month}',
+                            style: theme.textTheme.labelLarge?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
                           ),
                         ),
                       ],

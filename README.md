@@ -1,14 +1,38 @@
-# Nhắc việc
+# Việc của Mẹ
 
-Flutter Android (7.0 trở lên) app cá nhân bằng tiếng Việt, chữ lớn, nhân vật đồng hồ. Tên app **Nhắc việc**, package cố định **vn.bannie.nhac_viec**, APK **nhac-viec.apk**.
+Ứng dụng Android ghi việc cần làm bằng tiếng Việt, làm cho Mẹ: chữ to, nút lớn, có cả lịch dương và lịch âm. Package cố định **vn.bannie.nhac_viec**, APK **nhac-viec.apk**.
 
-- Công việc, biểu tượng theo loại, ghi chú, nhắc trước và lặp theo ngày/tuần/năm dương/năm âm.
-- Lịch dương có ngày âm nhỏ bên dưới; lịch âm theo tháng âm Việt Nam (UTC+7), có tháng nhuận.
-- Nhập giọng nói hoặc văn bản → xem lại → tùy chọn gửi OpenAI → xác nhận bản nháp → lưu.
-- Khóa API lưu trong Android Keystore qua flutter_secure_storage, không ghi vào repo hoặc nhật ký. Bản cá nhân gọi trực tiếp OpenAI bằng khóa riêng của người dùng, không nhúng khóa dùng chung.
-- Báo thức theo thứ; nhắc uống nước, ghi lượng đã uống; hỏi lại và tổng kết.
-- Chọn màu chủ đạo, màu nền, ảnh nền, độ hiện ảnh, cỡ chữ. Font Be Vietnam Pro đóng gói vào APK.
-- Lưu dữ liệu trên máy; cài bản cập nhật cùng chữ ký giữ dữ liệu.
+## Tính năng
+
+- **Hôm nay**: lời chào, ngày dương và âm (năm can chi), báo Rằm, mùng Một và ngày lễ, thanh tiến độ, việc quá hạn, việc hôm nay và 7 ngày tới. Chạm vòng tròn lớn để đánh dấu xong (có Hoàn tác).
+- **Lịch âm dương**: xem theo tháng dương (ngày âm nhỏ bên dưới) hoặc theo tháng âm (kể cả tháng nhuận). Rằm và mùng Một được tô màu, ngày lễ Việt Nam được đánh dấu, chấm màu cho biết ngày đó có việc thuộc nhóm nào.
+- **Nhóm việc bằng biểu tượng**: 7 nhóm có sẵn (Sức khỏe, Gia đình, Đi chợ & nhà cửa, Giỗ lễ & chùa, Hẹn & gặp gỡ, Tiền nong, Việc khác). Có thể tạo hoặc sửa nhóm: chọn 1 trong 48 biểu tượng (chia theo 6 nhóm chủ đề) và 10 màu.
+- **Trợ lý AI tạo việc**: nói (giọng tiếng Việt) hoặc gõ tự nhiên, nhiều việc một lúc, ví dụ *"Giỗ ông nội 12/3 âm lịch"*, *"Mai 7 giờ sáng uống thuốc"*. Trợ lý dùng Claude (`claude-opus-5-5`, structured output). Mẹ xem lại, sửa hoặc bỏ chọn từng việc rồi mới lưu. Không có mã khóa hoặc không có mạng thì dùng bộ hiểu tiếng Việt đơn giản, chạy ngay trên máy.
+- **Lặp lại**: mỗi ngày, tuần, tháng hoặc năm (dương lịch); mỗi tháng âm (Rằm, mùng Một) hoặc mỗi năm âm (ngày giỗ, không tính vào tháng nhuận). Ngày 30 âm rơi vào tháng thiếu thì chuyển sang ngày 29.
+- **Nhắc trên điện thoại**: đúng giờ, trước 15 phút, trước 1 giờ hoặc trước 1 ngày. Lên lịch sẵn tối đa 60 lời nhắc gần nhất trong 45 ngày tới, làm mới mỗi lần mở app hoặc sửa việc.
+- **Giao diện thay đổi theo cài đặt**: 6 bảng màu (Hoa sen, Trà xanh, Biển xanh, Nắng mai, Cà phê sữa, Hoa cà) hoặc tự chọn màu; chế độ sáng, tối hoặc theo máy; 4 cỡ chữ; chữ đậm; tương phản cao; bo góc hoặc góc vuông; nút to rộng rãi. Mọi thay đổi áp dụng ngay, có ô xem trước.
+
+## Riêng tư
+
+- Dữ liệu chỉ lưu trên điện thoại (SharedPreferences).
+- Mã khóa Claude API lưu trong Android Keystore (flutter_secure_storage), không nằm trong repo.
+- Chỉ câu Mẹ nói hoặc gõ khi bấm **Tạo việc** mới được gửi tới Anthropic. Danh sách việc và cài đặt không bao giờ được gửi đi.
+
+## Cấu trúc mã
+
+```
+lib/
+  core/       lunar.dart (âm lịch, can chi, ngày lễ), format.dart
+  models/     task.dart (lặp lại dương/âm), category.dart (nhóm biểu tượng), settings.dart
+  data/       store.dart (lưu trữ, truy vấn hôm nay/quá hạn/sắp tới)
+  services/   ai_service.dart (Claude), local_parser.dart (không cần AI),
+              notifications.dart, speech.dart
+  theme/      app_theme.dart (dựng ThemeData từ cài đặt)
+  ui/         home_shell, today_page, calendar_page, categories_page,
+              task_editor, ai_sheet, settings_page, widgets
+test/         logic_test (âm lịch, lặp lại, bộ hiểu câu), services_test (AI, kho, nhắc, giao diện),
+              widget_test (luồng sử dụng chính)
+```
 
 ## Phát triển
 
@@ -21,30 +45,27 @@ flutter test
 flutter run
 ```
 
-Host Android được tạo có thể lặp lại bằng `scripts/prepare.sh`, sau đó cấu hình package, quyền và chữ ký bằng script Python được version-control. Không tự thay package hoặc khóa ký khi nâng cấp.
+`scripts/prepare.sh` tạo host Android, cấu hình package, quyền, tên app và font Be Vietnam Pro. Thư mục `android/` không được commit.
 
 ## Build tự động
 
-Workflow `.github/workflows/android.yml`: push main hoặc Run workflow → phân tích, test, build Android debug kiểm tra → build release có chữ ký cố định → kiểm tra SHA-256 chứng chỉ → upload artifact **nhac-viec** (bên trong có **nhac-viec.apk**).
+Workflow `.github/workflows/android.yml`:
 
-**Cần thiết lập Secrets một lần trước khi có APK release: [docs/SETUP.md](docs/SETUP.md).** Không dùng debug keystore ngẫu nhiên từ runner CI làm chữ ký release.
+- **develop**: phân tích, test, build APK debug và tải lên artifact **viec-cua-me-thu-nghiem** (14 ngày). Bản thử có package `vn.bannie.nhac_viec.dev`, cài song song với bản chính, không đụng dữ liệu thật.
+- **main**: như trên, rồi build release có chữ ký cố định, kiểm tra SHA-256 chứng chỉ và tải lên artifact **nhac-viec**. **Cần thiết lập Secrets một lần: [docs/SETUP.md](docs/SETUP.md).**
 
-## Giới hạn cần biết
+## Giới hạn
 
-- Android trước; chưa có host iOS. Chưa kiểm thử trên điện thoại thật.
-- Banner không luôn phủ trên mọi ứng dụng. Báo thức dùng thông báo ưu tiên cao, cờ lặp âm báo và màn hình Tắt / Nhắc lại. Toàn màn hình cần bật quyền riêng và vẫn phụ thuộc chính sách Android/nhà sản xuất. Các nút hành động mở app để cập nhật dữ liệu rõ ràng.
-- Việc và tổng kết: lên lịch trước tối đa 21 ngày, làm mới nền bằng WorkManager mỗi 12 giờ khi Android cho phép, và khi mở/resume app, sửa dữ liệu hoặc xác nhận thông báo. Nên mở app định kỳ để kiểm tra; năm âm lên lịch lần tồn tại kế tiếp trong tối đa 8 năm. Báo thức/uống nước lặp bằng Android. Máy bị force-stop/tiết kiệm pin có thể chặn nhắc; bật quyền đúng giờ và thông báo.
-- Nội dung tổng kết trên thông báo là ảnh chụp dữ liệu ở lần cập nhật lịch gần nhất; mở app để xem dữ liệu hiện tại. Các nút chỉ cập nhật khi người dùng bấm, không tự suy đoán đã quên.
-- Không tự điểm danh trên ứng dụng khác; nhắc người dùng tự thực hiện.
-- Chiều cao/cân nặng được nhập và lưu, nhưng không tạo một công thức y tế giả để suy ra chính xác nước uống. Mục tiêu điều chỉnh được, có chế độ mức dịch riêng theo bác sĩ. Mức tham khảo 1.600 ml cần người dùng xác nhận. Không thay hướng dẫn chuyên môn.
-- Giọng nói tùy dịch vụ hệ thống, có thể cần mạng. AI tùy chọn, API tính phí riêng; không gửi âm thanh/hồ sơ sức khỏe/danh sách việc cho OpenAI.
-- Chưa có sao lưu/đồng bộ đám mây. Không gỡ app nếu cần giữ dữ liệu.
+- Chỉ có Android, chưa thử trên điện thoại thật.
+- Nhắc việc phụ thuộc quyền thông báo, quyền báo thức chính xác và chế độ tiết kiệm pin của từng hãng.
+- Nhận giọng nói dùng dịch vụ của hệ thống và có thể cần mạng.
+- Trợ lý AI cần mã khóa Claude API; phí tính theo tài khoản Anthropic của mã khóa đó.
+- Chưa có sao lưu đám mây. Đừng gỡ app nếu cần giữ dữ liệu.
+- Phiên bản này dùng kho dữ liệu mới, không đọc dữ liệu của bản "Nhắc việc" cũ.
 
-## Tham khảo triển khai
+## Tham khảo
 
-- [Flutter Android signing](https://docs.flutter.dev/deployment/android)
-- [flutter_local_notifications 19.5.0](https://pub.dev/packages/flutter_local_notifications/versions/19.5.0)
-- [vnlunar, BSD-3-Clause](https://pub.dev/packages/vnlunar)
+- [vnlunar, BSD-3-Clause](https://pub.dev/packages/vnlunar), thuật toán âm lịch của Hồ Ngọc Đức
 - [Be Vietnam Pro, OFL](https://github.com/google/fonts/tree/main/ofl/bevietnampro)
-- [OpenAI: API và ChatGPT thanh toán riêng](https://help.openai.com/en/articles/9039756-managing-billing-for-chatgpt-and-the-api-platform)
-- [NHS: nước và đồ uống](https://www.nhs.uk/live-well/eat-well/food-guidelines-and-food-labels/water-drinks-nutrition/)
+- [Claude API: structured outputs](https://platform.claude.com/docs/en/build-with-claude/structured-outputs)
+- [Flutter Android signing](https://docs.flutter.dev/deployment/android)

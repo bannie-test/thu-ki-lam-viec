@@ -85,12 +85,9 @@ class AppStore extends ChangeNotifier {
     await save();
   }
 
+  /// Number of tasks in the category that still have something to do.
   int pendingIn(String categoryId, DateTime today) =>
-      upcoming(
-        today,
-        days: 30,
-      ).where((o) => o.task.categoryId == categoryId && !o.done).length +
-      overdue(today).where((o) => o.task.categoryId == categoryId).length;
+      nextInCategory(categoryId, today).where((o) => !o.done).length;
 
   // ---------------- Tasks ----------------
   Future<void> upsertTask(Task t) async {
@@ -125,8 +122,9 @@ class AppStore extends ChangeNotifier {
       if (d != 0) return d;
       final ta = a.task.time ?? -1, tb = b.task.time ?? -1;
       if (ta != tb) return ta.compareTo(tb);
-      if (a.task.important != b.task.important)
+      if (a.task.important != b.task.important) {
         return a.task.important ? -1 : 1;
+      }
       return a.task.title.compareTo(b.task.title);
     });
 

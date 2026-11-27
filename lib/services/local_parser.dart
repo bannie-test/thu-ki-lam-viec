@@ -141,11 +141,13 @@ class LocalParser {
     // ---- repeat ----
     final everyLunarMonth =
         RegExp(r'(mỗi|hằng|hàng) tháng').hasMatch(t) && t.contains('âm');
-    if (RegExp(r'(mỗi|hằng|hàng) (ngày|sáng|tối|đêm)').hasMatch(t))
+    if (RegExp(r'(mỗi|hằng|hàng) (ngày|sáng|tối|đêm)').hasMatch(t)) {
       repeat = Repeat.daily;
+    }
     if (RegExp(r'(mỗi|hằng|hàng) tuần').hasMatch(t)) repeat = Repeat.weekly;
-    if (RegExp(r'(mỗi|hằng|hàng) tháng').hasMatch(t))
+    if (RegExp(r'(mỗi|hằng|hàng) tháng').hasMatch(t)) {
       repeat = everyLunarMonth ? Repeat.lunarMonthly : Repeat.monthly;
+    }
     if (RegExp(r'(mỗi|hằng|hàng) năm').hasMatch(t)) repeat = Repeat.yearly;
     if (t.contains('giỗ')) repeat = Repeat.lunarYearly;
 
@@ -190,8 +192,9 @@ class LocalParser {
         date = today.add(Duration(days: diff));
         dateFound = true;
         if (repeat == Repeat.none &&
-            RegExp(r'(mỗi|hằng|hàng|các) ').hasMatch(t))
+            RegExp(r'(mỗi|hằng|hàng|các) ').hasMatch(t)) {
           repeat = Repeat.weekly;
+        }
         break;
       }
     }
@@ -206,8 +209,9 @@ class LocalParser {
       lunarDay = 15;
       final m = RegExp(r'rằm tháng (\d{1,2}|giêng|chạp)').firstMatch(t);
       if (m != null) lunarMonth = _monthWord(m[1]!);
-      if (t.contains('mỗi') || t.contains('hằng') || t.contains('hàng'))
+      if (t.contains('mỗi') || t.contains('hằng') || t.contains('hàng')) {
         repeat = Repeat.lunarMonthly;
+      }
     }
     final mung = RegExp(
       r'mùng\s*(\d{1,2}|một|hai|ba|bốn|năm|sáu|bảy|tám|chín|mười)(?:\s*tháng\s*(\d{1,2}|giêng|chạp))?',
@@ -215,8 +219,9 @@ class LocalParser {
     if (mung != null) {
       lunarDay = _numberWord(mung[1]!);
       if (mung[2] != null) lunarMonth = _monthWord(mung[2]!);
-      if (t.contains('mỗi') || t.contains('hằng') || t.contains('hàng'))
+      if (t.contains('mỗi') || t.contains('hằng') || t.contains('hàng')) {
         repeat = Repeat.lunarMonthly;
+      }
     }
     final slash = RegExp(
       r'(?:ngày\s*)?(\d{1,2})\s*[/\-]\s*(\d{1,2})(?:\s*[/\-]\s*(\d{4}))?',
@@ -229,8 +234,9 @@ class LocalParser {
         lunarMonth = m;
       } else if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
         var candidate = DateTime(y ?? today.year, m, d);
-        if (y == null && candidate.isBefore(today))
+        if (y == null && candidate.isBefore(today)) {
           candidate = DateTime(today.year + 1, m, d);
+        }
         date = candidate;
         dateFound = true;
       }
@@ -314,8 +320,9 @@ class LocalParser {
     var d = dateOnly(from);
     for (var i = 0; i < 400; i++) {
       final l = LunarDate.fromSolar(d);
-      if (l.day == day && (month == null || (l.month == month && !l.leap)))
+      if (l.day == day && (month == null || (l.month == month && !l.leap))) {
         return d;
+      }
       d = DateTime(d.year, d.month, d.day + 1);
     }
     return null;
@@ -360,6 +367,19 @@ class LocalParser {
         r'(mỗi|hằng|hàng)\s+(ngày|tuần|tháng|năm)(\s+âm( lịch)?)?',
         caseSensitive: false,
       ),
+      RegExp(
+        r'(vào\s+)?(ngày\s+)?\d{1,2}\s*[/\-]\s*\d{1,2}(\s*[/\-]\s*\d{4})?(\s*(âm lịch|âm|dương lịch|dương))?',
+        caseSensitive: false,
+      ),
+      RegExp(
+        r'(vào\s+)?(ngày\s+)?(rằm|mùng\s*\S+)(\s+tháng\s+(\d{1,2}|giêng|chạp|này|sau|tới))?(\s+âm( lịch)?)?',
+        caseSensitive: false,
+      ),
+      RegExp(
+        r'(vào\s+)?(thứ\s+(hai|ba|tư|năm|sáu|bảy|[2-7])|chủ nhật)(\s+(tuần sau|tuần tới|này))?',
+        caseSensitive: false,
+      ),
+      RegExp(r'\b(âm lịch|lúc|vào)\b', caseSensitive: false),
     ];
     for (final p in patterns) {
       s = s.replaceAll(p, ' ');

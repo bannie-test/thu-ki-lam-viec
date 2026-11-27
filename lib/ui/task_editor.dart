@@ -96,8 +96,11 @@ class _TaskEditorPageState extends State<TaskEditorPage> {
     task
       ..title = text
       ..note = note.text.trim();
-    if (task.time == null && task.remindBefore > 0 && task.remindBefore < 1440)
+    if (task.time == null &&
+        task.remindBefore > 0 &&
+        task.remindBefore < 1440) {
       task.remindBefore = 0;
+    }
     final nav = Navigator.of(context);
     if (!widget.draftOnly) {
       await Services.of(context).store.upsertTask(task);
@@ -144,12 +147,13 @@ class _TaskEditorPageState extends State<TaskEditorPage> {
       cancelText: 'Thôi',
       confirmText: 'Chọn',
     );
-    if (d != null)
+    if (d != null) {
       setState(
         () => task
           ..date = d
           ..lunarPicked = false,
       );
+    }
   }
 
   Future<void> _pickLunar() async {
@@ -157,12 +161,13 @@ class _TaskEditorPageState extends State<TaskEditorPage> {
       context: context,
       builder: (_) => LunarPickerDialog(initial: task.date),
     );
-    if (d != null)
+    if (d != null) {
       setState(
         () => task
           ..date = d
           ..lunarPicked = true,
       );
+    }
   }
 
   Future<void> _pickTime() async {
@@ -256,7 +261,7 @@ class _TaskEditorPageState extends State<TaskEditorPage> {
             style: theme.textTheme.titleLarge,
             decoration: const InputDecoration(
               labelText: 'Việc cần làm',
-              hintText: 'Ví dụ: Uống thuốc huyết áp',
+              hintText: 'Ví dụ: Uống thuốc',
             ),
           ),
 

@@ -44,8 +44,9 @@ class _AiSheetState extends State<AiSheet> {
   @override
   void initState() {
     super.initState();
-    if (widget.startListening)
+    if (widget.startListening) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _toggleMic());
+    }
   }
 
   Voice? _voice;
@@ -348,11 +349,13 @@ class _DraftCard extends StatelessWidget {
     final cat = store.category(task.categoryId);
     final now = DateTime.now();
     final lunar = LunarDate.fromSolar(task.date);
-    final when = [
-      relativeDay(task.date, now),
-      shortDate(task.date),
-      task.time == null ? 'cả ngày' : clock(task.time!),
-    ].join(' · ');
+    final diff = task.date
+        .difference(DateTime(now.year, now.month, now.day))
+        .inDays;
+    final day = diff >= -1 && diff <= 2
+        ? '${relativeDay(task.date, now)} (${shortDate(task.date)})'
+        : '${weekdayName(task.date)}, ${shortDate(task.date)}';
+    final when = '$day · ${task.time == null ? 'cả ngày' : clock(task.time!)}';
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Card(

@@ -210,6 +210,7 @@ void main() {
       expect((l.day, l.month), (12, 3));
       expect(t.date.isAfter(now), isTrue);
       expect(t.categoryId, 'le-gio');
+      expect(t.title, 'Giỗ ông nội');
     });
 
     test('Rằm tới đi chùa', () {
@@ -229,6 +230,12 @@ void main() {
       expect(list[0].time, 9 * 60);
       expect(list[1].date, DateTime(2026, 12, 5));
       expect(list[1].categoryId, 'tien-nong');
+      expect(list[0].title, 'Đưa cháu đi khám răng');
+      expect(list[1].title, 'Đóng tiền điện');
+      expect(
+        LocalParser.parse('Rằm tháng Giêng đi chùa', now, cats).single.title,
+        'Đi chùa',
+      );
     });
 
     test('Giờ đã qua trong ngày thì chuyển sang mai', () {

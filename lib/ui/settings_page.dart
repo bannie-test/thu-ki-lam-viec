@@ -437,7 +437,7 @@ class _PresetTile extends StatelessWidget {
         onTap: onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          width: 96,
+          width: 100,
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
             color: background,
@@ -462,8 +462,7 @@ class _PresetTile extends StatelessWidget {
               Text(
                 name,
                 textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+                maxLines: 2,
                 style: theme.textTheme.labelLarge?.copyWith(
                   color: Colors.black87,
                 ),

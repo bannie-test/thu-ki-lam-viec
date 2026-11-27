@@ -188,7 +188,10 @@ ThemeData buildTheme(AppSettings s, Brightness brightness) {
       foregroundColor: scheme.onSurface,
       surfaceTintColor: Colors.transparent,
       centerTitle: false,
-      titleTextStyle: textTheme.titleLarge,
+      titleTextStyle: textTheme.titleLarge?.copyWith(
+        fontSize: 24,
+        fontWeight: FontWeight.w700,
+      ),
     ),
     cardTheme: CardThemeData(
       elevation: 0,
