@@ -1,7 +1,7 @@
 name: nhac_viec
-description: Nhắc việc cá nhân bằng tiếng Việt.
+description: Sổ việc của Mẹ — ứng dụng việc cần làm tiếng Việt, có lịch âm.
 publish_to: none
-version: 1.0.0+1
+version: 2.0.0+2
 environment:
   sdk: '>=3.9.0 <4.0.0'
 dependencies:
@@ -15,15 +15,7 @@ dependencies:
   timezone: ^0.10.1
   speech_to_text: ^7.3.0
   http: ^1.5.0
-  image_picker: ^1.2.0
-  path_provider: ^2.1.5
   vnlunar: ^1.2.0
-  workmanager: 0.9.0+3
-  # Keep the federated implementations aligned; later 0.9.x interfaces
-  # introduced incompatible foreground-service arguments.
-  workmanager_android: 0.9.0+2
-  workmanager_apple: 0.9.1+2
-  workmanager_platform_interface: 0.9.1+1
 dev_dependencies:
   flutter_lints: ^6.0.0
   flutter_test:

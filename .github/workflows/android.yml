@@ -1,9 +1,9 @@
 name: Build nhac-viec.apk
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
   pull_request:
-    branches: [main]
+    branches: [main, develop]
   workflow_dispatch:
 permissions:
   contents: read
@@ -31,6 +31,14 @@ jobs:
       - run: flutter test
       - name: Validate Android host
         run: flutter build apk --debug
+      - name: Upload test APK (develop)
+        if: github.ref == 'refs/heads/develop' && github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: viec-cua-me-thu-nghiem
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          retention-days: 14
+          if-no-files-found: error
   apk:
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     needs: check
